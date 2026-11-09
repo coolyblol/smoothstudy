@@ -10,14 +10,14 @@
   /* ---------------- Theme ---------------- */
   const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : { matches: false };
   function getPref() {
-    try { const v = localStorage.getItem('ss-theme'); if (v === 'light' || v === 'dark' || v === 'system') return v; } catch (e) {}
+    try { const v = localStorage.getItem('ss-theme'); if (v === 'light' || v === 'dark' || v === 'system') return v; } catch (e) { }
     return 'system';
   }
   function setTheme(pref, save) {
     const resolved = pref === 'system' ? (mq.matches ? 'dark' : 'light') : pref;
     document.documentElement.setAttribute('data-theme', resolved);
     document.querySelectorAll('.ts-opt').forEach((b) => b.classList.toggle('active', b.dataset.themeChoice === pref));
-    if (save) { try { localStorage.setItem('ss-theme', pref); } catch (e) {} }
+    if (save) { try { localStorage.setItem('ss-theme', pref); } catch (e) { } }
     initMermaid();
     renderDiagrams();
   }
