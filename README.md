@@ -6,9 +6,9 @@ Upload notes (PDF, JPG, PNG) or type them, get a condensed summary with diagrams
 
 Requires Node 18 or newer. There is nothing to install.
 
-1. Copy `.env.example` to `.env` and paste your Anthropic API key after `ANTHROPIC_API_KEY=`.
+1. Open the `.env` file and paste your Anthropic API key after `ANTHROPIC_API_KEY=`.
 2. Run `node server.js`
-3. Open http://localhost:3000
+3. Open `http://localhost:3000`
 
 The key is only read by `server.js`. It is never sent to the browser, so do not paste it into `app.js` or `index.html`.
 
