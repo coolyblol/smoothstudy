@@ -6,9 +6,13 @@ Upload notes (PDF, JPG, PNG) or type them, get a condensed summary with diagrams
 
 Requires Node 18 or newer. There is nothing to install.
 
-1. Open the `.env` file and paste your Anthropic API key after `ANTHROPIC_API_KEY=`.
+1. Copy `.env.example` to `.env` and paste your Anthropic API key after `ANTHROPIC_API_KEY=`.
 2. Run `node server.js`
-3. Open `http://localhost:3000`
+3. Open http://localhost:3000
+
+## Demo mode (no API key needed)
+
+Run `node server.js --demo` (or set `DEMO_MODE=1`) to skip the AI. Uploads are still validated and read for real, but the summary and quiz come from built-in sample data about photosynthesis, so you can test the summary page, diagrams and the whole quiz flow.
 
 The key is only read by `server.js`. It is never sent to the browser, so do not paste it into `app.js` or `index.html`.
 
