@@ -12,11 +12,13 @@
     rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
   <script>
-    try {
-      var p = localStorage.getItem('ss-theme');
-      var dark = p === 'dark' || (p !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+    (function () {
+      var pref = 'system';
+      try { var v = localStorage.getItem('ss-theme-v2'); if (v === 'light' || v === 'dark') pref = v; } catch (e) { }
+      var dark = pref === 'dark';
+      if (pref === 'system') { try { dark = !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); } catch (e) { } }
       document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
-    } catch (e) { }
+    })();
   </script>
 </head>
 
@@ -168,6 +170,23 @@
   <footer class="foot">
     <span class="foot-note">SmoothStudy isn't human. It can make mistakes, so double-check it.</span>
   </footer>
+
+  <div class="scroll-nav">
+    <button class="scroll-btn is-hidden" id="scrollUp" type="button" aria-label="Scroll up">
+      <span class="sb-label">Scroll up</span>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 15l6-6 6 6" />
+      </svg>
+    </button>
+    <button class="scroll-btn is-hidden" id="scrollDown" type="button" aria-label="Scroll down">
+      <span class="sb-label">Scroll down</span>
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    </button>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
   <script src="/app.js"></script>
