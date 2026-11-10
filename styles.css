@@ -85,15 +85,17 @@ pre {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(60rem 30rem at 85% -10%, rgba(240, 162, 124, .28), transparent 60%),
-    radial-gradient(40rem 26rem at -10% 20%, rgba(200, 85, 61, .10), transparent 60%);
+    radial-gradient(72rem 38rem at 88% -8%, rgba(240, 150, 108, .36), transparent 64%),
+    radial-gradient(54rem 36rem at -8% 22%, rgba(200, 85, 61, .16), transparent 64%),
+    radial-gradient(64rem 36rem at 50% 112%, rgba(240, 162, 124, .19), transparent 62%);
   transition: opacity .4s ease;
 }
 
 :root[data-theme="dark"] .bg-glow {
   background:
-    radial-gradient(60rem 30rem at 85% -10%, rgba(143, 184, 222, .20), transparent 60%),
-    radial-gradient(40rem 26rem at -10% 20%, rgba(241, 230, 207, .08), transparent 60%);
+    radial-gradient(72rem 38rem at 88% -8%, rgba(143, 184, 222, .30), transparent 64%),
+    radial-gradient(54rem 36rem at -8% 22%, rgba(241, 230, 207, .12), transparent 64%),
+    radial-gradient(64rem 36rem at 50% 112%, rgba(143, 184, 222, .17), transparent 62%);
 }
 
 /* ---------- Theme switch ---------- */
@@ -500,6 +502,10 @@ main {
   transform: translateY(-4px);
 }
 
+.file-list:empty {
+  display: none;
+}
+
 .file-list {
   list-style: none;
   padding: 0;
@@ -553,6 +559,8 @@ main {
 }
 
 textarea {
+  display: block;
+  margin-top: 18px;
   width: 100%;
   resize: vertical;
   padding: 14px 16px;
@@ -951,6 +959,111 @@ code {
   text-shadow: var(--text-shadow);
 }
 
+/* ---------- Scroll buttons ---------- */
+.scroll-nav {
+  position: fixed;
+  right: 18px;
+  bottom: 22px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.scroll-btn {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0;
+  height: 44px;
+  max-width: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  font: 500 .82rem 'Lexend', sans-serif;
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: max-width .35s cubic-bezier(.2, .8, .2, 1), padding .35s cubic-bezier(.2, .8, .2, 1), gap .35s, opacity .35s ease, transform .35s cubic-bezier(.2, .8, .2, 1), background .25s, color .25s, border-color .25s, box-shadow .25s, visibility 0s;
+}
+
+.scroll-btn svg {
+  flex: none;
+  transition: transform .3s cubic-bezier(.2, .8, .2, 1);
+}
+
+.sb-label {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-width .35s ease, opacity .25s ease;
+}
+
+/* Hover: the same soft tint the unselected theme buttons get (faded in), plus the expansion */
+.scroll-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--grad-soft);
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+
+.scroll-btn > * {
+  position: relative;
+}
+
+.scroll-btn:hover,
+.scroll-btn:focus-visible {
+  max-width: 170px;
+  padding: 0 12px 0 16px;
+  gap: 8px;
+  color: var(--text);
+}
+
+.scroll-btn:hover::before,
+.scroll-btn:focus-visible::before {
+  opacity: 1;
+}
+
+.scroll-btn:hover .sb-label,
+.scroll-btn:focus-visible .sb-label {
+  max-width: 90px;
+  opacity: 1;
+}
+
+#scrollUp:hover svg,
+#scrollUp:focus-visible svg {
+  transform: translateY(-2px);
+}
+
+#scrollDown:hover svg,
+#scrollDown:focus-visible svg {
+  transform: translateY(2px);
+}
+
+.scroll-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* Hidden state: fades out (and drops slightly), then leaves the tab order */
+.scroll-btn.is-hidden {
+  opacity: 0;
+  transform: translateY(8px) scale(.9);
+  visibility: hidden;
+  pointer-events: none;
+  transition: max-width .35s cubic-bezier(.2, .8, .2, 1), padding .35s cubic-bezier(.2, .8, .2, 1), gap .35s, opacity .35s ease, transform .35s cubic-bezier(.2, .8, .2, 1), background .25s, color .25s, border-color .25s, box-shadow .25s, visibility 0s linear .35s;
+}
+
 @media (max-width: 560px) {
   .hero {
     padding-top: 90px;
@@ -964,6 +1077,11 @@ code {
   .brand {
     top: 12px;
     left: 12px;
+  }
+
+  .scroll-nav {
+    right: 12px;
+    bottom: 12px;
   }
 }
 
