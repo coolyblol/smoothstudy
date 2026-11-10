@@ -4,6 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { kindOf, imageTypeOf, extractText } = require('./extract');
+const demo = require('./demo');
 
 // Minimal .env loader
 try {
@@ -13,6 +14,9 @@ try {
   });
 } catch (_) {}
 
+// Demo mode: no AI calls, built-in sample summary and quiz. Start with `node server.js --demo` or DEMO_MODE=1.
+const DEMO = process.argv.includes('--demo') || /^(1|true|yes|on)$/i.test(process.env.DEMO_MODE || '');
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL = process.env.CLAUDE_MODEL || 'claude-sonnet-5-5';
 const PORT = process.env.PORT || 3000;
@@ -104,13 +108,14 @@ const TEXT_CAP_TOTAL = 700000;
 
 async function handleSummarize(body) {
   const blocks = [];
-  let inlineBytes = 0, textTotal = 0;
+  let inlineBytes = 0, textTotal = 0, fileCount = 0;
   for (const f of body.files || []) {
     if (!f || typeof f.data !== 'string') continue;
     const name = String(f.name || 'file');
     const kind = kindOf(name);
     if (!kind) throw new Error(`${name}: this file type isn't supported.`);
     if (kind === 'legacy') throw new Error(`${name}: old .doc, .ppt and .xls files can't be read. Open it and save as .docx, .pptx or .xlsx (or export to PDF), then upload again.`);
+    fileCount++;
     const buf = Buffer.from(f.data, 'base64');
     if (kind === 'pdf' || kind === 'image') {
       if (kind === 'image' && buf.length > IMAGE_MAX_BYTES) throw new Error(`${name}: images over 5 MB can't be read by the AI. Resize or compress it first.`);
@@ -131,6 +136,10 @@ async function handleSummarize(body) {
   const typed = (body.text || '').toString().slice(0, 200000);
   if (typed.trim()) blocks.push({ type: 'text', text: `Student's typed notes:\n\n${typed}` });
   if (!blocks.length) throw new Error('Nothing to summarise. Add notes or upload a file.');
+  if (DEMO) {
+    await sleep(900); // so the loading spinner is visible
+    return demo.summary({ files: fileCount, chars: textTotal + typed.length });
+  }
   blocks.push({ type: 'text', text: 'Create the study summary JSON now.' });
   return extractJSON(await callClaude(SUMMARY_SYSTEM, blocks, 12000));
 }
@@ -138,6 +147,10 @@ async function handleSummarize(body) {
 async function handleQuiz(body) {
   const count = [5, 10, 20].includes(body.count) ? body.count : 10;
   const difficulty = ['Easy', 'Medium', 'Hard', 'Mixed'].includes(body.difficulty) ? body.difficulty : 'Mixed';
+  if (DEMO) {
+    await sleep(700);
+    return demo.quiz(count, difficulty);
+  }
   const summary = JSON.stringify(body.summary || {}).slice(0, 150000);
   const prompt = `Study summary (JSON):\n${summary}\n\nWrite exactly ${count} multiple choice questions. Difficulty: ${difficulty}.`;
   const out = extractJSON(await callClaude(QUIZ_SYSTEM, [{ type: 'text', text: prompt }], 12000));
@@ -170,5 +183,6 @@ http
   })
   .listen(PORT, () => {
     console.log(`SmoothStudy running at http://localhost:${PORT}`);
-    if (!KEY) console.log('Warning: ANTHROPIC_API_KEY is not set. Copy .env.example to .env and add your key.');
+    if (DEMO) console.log('DEMO MODE: no AI calls are made; summaries and quizzes are built-in sample data.');
+    else if (!KEY) console.log('Warning: ANTHROPIC_API_KEY is not set. Copy .env.example to .env and add your key, or run with --demo.');
   });
