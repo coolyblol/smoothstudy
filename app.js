@@ -5,19 +5,20 @@
 
   let files = [];
   let summary = null;
-  let quiz = [], qi = 0, score = 0;
+  let quiz = [], quizSource = [], lastQuestionOrder = '', qi = 0, score = 0;
 
   /* ---------------- Theme ---------------- */
   const mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : { matches: false };
+  const THEME_KEY = 'ss-theme-v2'; // v2: ignores values saved by earlier builds, so first open is System
   function getPref() {
-    try { const v = localStorage.getItem('ss-theme'); if (v === 'light' || v === 'dark' || v === 'system') return v; } catch (e) { }
+    try { const v = localStorage.getItem(THEME_KEY); if (v === 'light' || v === 'dark' || v === 'system') return v; } catch (e) { }
     return 'system';
   }
   function setTheme(pref, save) {
     const resolved = pref === 'system' ? (mq.matches ? 'dark' : 'light') : pref;
     document.documentElement.setAttribute('data-theme', resolved);
     document.querySelectorAll('.ts-opt').forEach((b) => b.classList.toggle('active', b.dataset.themeChoice === pref));
-    if (save) { try { localStorage.setItem('ss-theme', pref); } catch (e) { } }
+    if (save) { try { localStorage.setItem(THEME_KEY, pref); } catch (e) { } }
     initMermaid();
     renderDiagrams();
   }
@@ -178,13 +179,38 @@
     setLoading(btn, true);
     try {
       const data = await post('/api/quiz', { summary, count, difficulty });
-      quiz = data.questions;
+      quizSource = data.questions;
       beginQuiz();
     } catch (e) { $('quizError').textContent = e.message; }
     finally { setLoading(btn, false); }
   });
 
+  // Options that refer to each other ("All of the above", "Both A and B") must keep their position.
+  const ORDER_DEPENDENT = /\b(all|none|both|neither)\s+of\s+the\s+(above|below|these|options)\b|\b(both|either)\s+[A-D]\s+(and|or)\s+[A-D]\b|\ball\s+(the\s+)?above\b/i;
+  function shuffled(q) {
+    const n = q.options.length;
+    const orderKey = (o) => o.join('|');
+    if (n < 2 || q.options.some((o) => ORDER_DEPENDENT.test(String(o)))) return { ...q };
+    let idx;
+    for (let tries = 0; tries < 20; tries++) {
+      idx = q.options.map((_, i) => i);
+      for (let i = n - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+      // a retake should never show the same arrangement as the attempt before it
+      if (orderKey(idx) !== q._last) break;
+    }
+    q._last = orderKey(idx);
+    return { ...q, options: idx.map((i) => q.options[i]), answer: idx.indexOf(q.answer) };
+  }
+
   function beginQuiz() {
+    // Fresh question order too; a retake never repeats the previous order.
+    const order = quizSource.map((_, i) => i);
+    for (let tries = 0; tries < 20; tries++) {
+      for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+      if (order.length < 2 || order.join(',') !== lastQuestionOrder) break;
+    }
+    lastQuestionOrder = order.join(',');
+    quiz = order.map((i) => shuffled(quizSource[i]));
     qi = 0; score = 0;
     $('quizSetup').classList.add('hidden'); $('quizResult').classList.add('hidden'); $('quizRun').classList.remove('hidden');
     showQ();
@@ -214,7 +240,7 @@
       else if (idx === i) b.classList.add('wrong');
     });
     if (i === q.answer) score++;
-    $('qExplain').innerHTML = '<b>' + (i === q.answer ? 'Correct' : 'Not quite') + '</b>' + esc(q.explanation || '');
+    $('qExplain').innerHTML = '<b>' + (i === q.answer ? 'Correct' : 'Incorrect') + '</b>' + esc(q.explanation || '');
     $('qExplain').classList.remove('hidden');
     $('nextBtn').classList.remove('hidden');
     $('progressBar').style.width = ((qi + 1) / quiz.length) * 100 + '%';
@@ -236,6 +262,56 @@
   }
   $('retryBtn').addEventListener('click', beginQuiz);
   $('newQuizBtn').addEventListener('click', () => { $('quizResult').classList.add('hidden'); $('quizSetup').classList.remove('hidden'); });
+
+  /* ---------------- Scroll buttons ---------------- */
+  (function () {
+    const up = $('scrollUp'), down = $('scrollDown');
+    if (!up || !down) return;
+    const EDGE = 4;
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const suppressed = { up: false, down: false }; // a clicked button stays hidden until the user scrolls back
+    let auto = null, autoTimer = null;             // direction of the scroll we started, if still running
+    const atTop = () => window.scrollY <= EDGE;
+    const atBottom = () => window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - EDGE;
+
+    function update() {
+      if (!auto) {
+        if (suppressed.up && !atTop()) suppressed.up = false;
+        if (suppressed.down && !atBottom()) suppressed.down = false;
+      }
+      up.classList.toggle('is-hidden', atTop() || suppressed.up);
+      down.classList.toggle('is-hidden', atBottom() || suppressed.down);
+    }
+    function armTimer() {
+      clearTimeout(autoTimer);
+      autoTimer = setTimeout(() => { auto = null; update(); }, 400); // our scroll has finished (or stalled)
+    }
+    function go(dir) {
+      suppressed[dir] = true;
+      auto = dir;
+      window.scrollTo({ top: dir === 'up' ? 0 : document.documentElement.scrollHeight, behavior: reduce ? 'auto' : 'smooth' });
+      update();
+      armTimer();
+    }
+    // The user taking over mid-scroll cancels ours and brings the button back.
+    function interrupt() {
+      if (!auto) return;
+      suppressed[auto] = false;
+      auto = null;
+      clearTimeout(autoTimer);
+      update();
+    }
+
+    up.addEventListener('click', () => go('up'));
+    down.addEventListener('click', () => go('down'));
+    window.addEventListener('scroll', () => { if (auto) armTimer(); update(); }, { passive: true });
+    window.addEventListener('resize', update);
+    window.addEventListener('wheel', interrupt, { passive: true });
+    window.addEventListener('touchstart', interrupt, { passive: true });
+    window.addEventListener('keydown', (e) => { if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End'].includes(e.key)) interrupt(); });
+    if (window.ResizeObserver) new ResizeObserver(update).observe(document.body); // page grows when the summary appears
+    update();
+  })();
 
   setTheme(getPref(), false);
 })();
