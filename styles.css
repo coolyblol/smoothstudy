@@ -1017,7 +1017,7 @@ code {
   transition: opacity .25s ease;
 }
 
-.scroll-btn > * {
+.scroll-btn>* {
   position: relative;
 }
 
@@ -1062,6 +1062,122 @@ code {
   visibility: hidden;
   pointer-events: none;
   transition: max-width .35s cubic-bezier(.2, .8, .2, 1), padding .35s cubic-bezier(.2, .8, .2, 1), gap .35s, opacity .35s ease, transform .35s cubic-bezier(.2, .8, .2, 1), background .25s, color .25s, border-color .25s, box-shadow .25s, visibility 0s linear .35s;
+}
+
+/* ---------- Download PDF button (same look as the ghost button & scroll buttons) ---------- */
+.dl-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform .25s cubic-bezier(.2, .8, .2, 1), background .25s, border-color .25s, opacity .25s, box-shadow .25s;
+}
+
+.dl-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--grad-soft);
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+
+.dl-btn>* {
+  position: relative;
+}
+
+.dl-btn svg {
+  transition: transform .25s ease;
+}
+
+.dl-btn:hover,
+.dl-btn:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+
+.dl-btn:hover::before,
+.dl-btn:focus-visible::before {
+  opacity: 1;
+}
+
+.dl-btn:hover svg,
+.dl-btn:focus-visible svg {
+  transform: none;
+}
+
+.dl-btn:active {
+  transform: translateY(0) scale(.98);
+}
+
+.dl-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.dl-spin {
+  display: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+
+.dl-btn.busy {
+  pointer-events: none;
+  opacity: .85;
+}
+
+.dl-btn.busy svg {
+  display: none;
+}
+
+.dl-btn.busy .dl-spin {
+  display: block;
+}
+
+/* Print route (used only when the PDF fonts cannot show the notes' characters): just the summary */
+@media print {
+
+  .print-summary .bg-glow,
+  .print-summary .brand,
+  .print-summary .theme-switch,
+  .print-summary .scroll-nav,
+  .print-summary .hero,
+  .print-summary .foot,
+  .print-summary #upload,
+  .print-summary #quiz,
+  .print-summary #summarySection>.row {
+    display: none !important;
+  }
+
+  .print-summary body {
+    background: #fff;
+  }
+
+  .print-summary .card {
+    box-shadow: none;
+    border: 0;
+    padding: 0;
+    animation: none;
+  }
+
+  .print-summary .sum-section,
+  .print-summary .term,
+  .print-summary .diagram {
+    break-inside: avoid;
+  }
 }
 
 @media (max-width: 560px) {
