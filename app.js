@@ -263,6 +263,93 @@
   $('retryBtn').addEventListener('click', beginQuiz);
   $('newQuizBtn').addEventListener('click', () => { $('quizResult').classList.add('hidden'); $('quizSetup').classList.remove('hidden'); });
 
+  /* ---------------- PDF download ---------------- */
+  const PDF_VARS = {
+    light: { background: '#ffffff', primaryColor: '#fbe6dc', primaryTextColor: '#2b211d', primaryBorderColor: '#c8553d', lineColor: '#e07a5a', secondaryColor: '#fdf0e9', tertiaryColor: '#ffffff' },
+    dark: { background: '#ffffff', primaryColor: '#e6eff8', primaryTextColor: '#1d2a3a', primaryBorderColor: '#3f78a8', lineColor: '#5f8fba', secondaryColor: '#f1f6fb', tertiaryColor: '#ffffff' },
+  };
+
+  // One diagram, drawn for paper (white page, plain SVG text so the canvas stays untainted) and returned as JPEG data.
+  async function diagramImage(src, n) {
+    const svg = (await mermaid.render('pdf-d-' + Date.now() + '-' + n, src)).svg;
+    const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+    const el = doc.documentElement;
+    if (doc.querySelector('parsererror') || el.nodeName.toLowerCase() !== 'svg') throw new Error('bad svg');
+    const vb = (el.getAttribute('viewBox') || '').split(/[\s,]+/).map(Number);
+    const w = vb.length === 4 && vb[2] > 0 ? vb[2] : parseFloat(el.getAttribute('width'));
+    const h = vb.length === 4 && vb[3] > 0 ? vb[3] : parseFloat(el.getAttribute('height'));
+    if (!(w > 0 && h > 0)) throw new Error('no size');
+    el.setAttribute('width', w); el.setAttribute('height', h);
+    el.removeAttribute('style');
+    el.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    const img = new Image();
+    await new Promise((ok, no) => {
+      img.onload = ok; img.onerror = () => no(new Error('svg load'));
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(el));
+    });
+    const k = Math.min(3, Math.max(1.5, 1800 / w));
+    const cv = document.createElement('canvas');
+    cv.width = Math.ceil(w * k); cv.height = Math.ceil(h * k);
+    const cx = cv.getContext('2d');
+    cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+    cx.drawImage(img, 0, 0, cv.width, cv.height);
+    return { data: atob(cv.toDataURL('image/jpeg', 0.92).split(',')[1]), w, h, pw: cv.width, ph: cv.height };
+  }
+
+  async function diagramImages(dark) {
+    const out = (summary.sections || []).map(() => null);
+    if (!window.mermaid) return out;
+    mermaid.initialize({
+      startOnLoad: false, theme: 'base', securityLevel: 'strict', fontFamily: 'Helvetica, Arial, sans-serif',
+      htmlLabels: false, flowchart: { htmlLabels: false }, themeVariables: dark ? PDF_VARS.dark : PDF_VARS.light,
+    });
+    try {
+      for (let i = 0; i < out.length; i++) {
+        const dg = summary.sections[i].diagram;
+        if (!dg || !dg.mermaid) continue;
+        try { out[i] = await diagramImage(dg.mermaid, i); }
+        catch (e) { document.querySelectorAll('[id^="dpdf-d-"]').forEach((x) => x.remove()); } // a diagram that fails is left out
+      }
+    } finally { initMermaid(); }
+    return out;
+  }
+
+  function saveBlob(bytes, name) {
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  // Fallback for notes whose characters the built-in PDF fonts cannot show (e.g. Cyrillic, CJK): the browser's own
+  // "Save as PDF" through the print dialog, restricted to the summary.
+  function printSummary() {
+    const root = document.documentElement, prev = root.getAttribute('data-theme');
+    root.setAttribute('data-theme', 'light');
+    root.classList.add('print-summary');
+    const done = () => { root.classList.remove('print-summary'); root.setAttribute('data-theme', prev); window.removeEventListener('afterprint', done); };
+    window.addEventListener('afterprint', done);
+    window.print();
+  }
+
+  $('dlBtn').addEventListener('click', async () => {
+    if (!summary) return;
+    const btn = $('dlBtn');
+    $('dlError').textContent = '';
+    btn.classList.add('busy');
+    try {
+      const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const bytes = window.SmoothPDF ? window.SmoothPDF.build({ summary, images: await diagramImages(dark), dark }) : null;
+      if (bytes) {
+        const name = String(summary.title || 'SmoothStudy notes').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'SmoothStudy notes';
+        saveBlob(bytes, name + '.pdf');
+      } else printSummary();
+    } catch (e) {
+      $('dlError').textContent = "Couldn't create the PDF. Please try again.";
+    } finally { btn.classList.remove('busy'); }
+  });
+
   /* ---------------- Scroll buttons ---------------- */
   (function () {
     const up = $('scrollUp'), down = $('scrollDown');
