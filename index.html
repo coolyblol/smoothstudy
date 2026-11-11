@@ -111,6 +111,14 @@
       <div id="sumTechnical"></div>
       <div id="sumTerms"></div>
       <div class="row end">
+        <span class="error" id="dlError" role="alert"></span>
+        <button class="dl-btn" id="dlBtn" type="button" aria-label="Download summary as PDF" title="Download as PDF">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3.5v11m0 0l-4.5-4.5M12 14.5l4.5-4.5M4 16v2.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V16" />
+          </svg>
+          <span class="dl-spin" aria-hidden="true"></span>
+        </button>
         <button class="btn btn-ghost" id="copyBtn">Copy summary</button>
         <a class="btn btn-primary" href="#quiz">Take a quiz</a>
       </div>
@@ -189,6 +197,7 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="/pdf.js"></script>
   <script src="/app.js"></script>
 </body>
 
