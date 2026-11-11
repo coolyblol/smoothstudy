@@ -27,6 +27,7 @@ const STATIC = {
   '/index.html': ['index.html', 'text/html; charset=utf-8'],
   '/styles.css': ['styles.css', 'text/css; charset=utf-8'],
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
+  '/pdf.js': ['pdf.js', 'text/javascript; charset=utf-8'],
 };
 
 const SUMMARY_SYSTEM = `You are SmoothStudy, an expert study-notes condenser. You receive a student's notes or textbook material (text, images, PDFs).
